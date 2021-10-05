@@ -2,6 +2,7 @@ import React, { useCallback, useLayoutEffect, useState } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Avatar } from "react-native-elements";
 import { GiftedChat } from "react-native-gifted-chat";
+import * as Analytics from "expo-firebase-analytics";
 
 import { AntDesign } from "@expo/vector-icons";
 
@@ -14,7 +15,7 @@ const Chat = ({ navigation, route }) => {
     navigation.setOptions({
       headerLeft: () => (
         <View style={{ marginHorizontal: 20 }}>
-          <Avatar rounded source={{ uri: auth?.currentUser?.photoURL }} />
+          <Avatar rounded source={{ uri: route.params.avatar }} />
         </View>
       ),
       headerRight: () => (
@@ -28,13 +29,16 @@ const Chat = ({ navigation, route }) => {
     });
   }, [navigation]);
 
-  const onSend = useCallback((messages = []) => {
+  const onSend = useCallback(async (messages = []) => {
+    await Analytics.logEvent("message_sent", { value: messages[0].text });
+
     setMessages((previousMessages) =>
       GiftedChat.append(previousMessages, messages)
     );
 
     const { _id, createdAt, text, user } = messages[0];
 
+    // Salva mensagem no chat do remetente
     db.collection("chats")
       .doc(auth?.currentUser?.email)
       .collection(route.params.user2)
@@ -44,6 +48,7 @@ const Chat = ({ navigation, route }) => {
         text,
         user,
       });
+    // Salva mensagem no chat do destinatário
     db.collection("chats")
       .doc(route.params.user2)
       .collection(auth?.currentUser?.email)
@@ -62,7 +67,9 @@ const Chat = ({ navigation, route }) => {
         .doc(auth?.currentUser?.email)
         .collection(route.params.user2)
         .orderBy("createdAt", "desc")
-        // .limit(20)
+        // .limit(20) // É possível limitar o número de mensagens para as últimas 20
+
+        // Evento que atualiza as mensagens quando há alguma alteração
         .onSnapshot((snapshot) =>
           setMessages(
             snapshot.docs.map((doc) => ({

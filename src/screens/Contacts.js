@@ -55,11 +55,17 @@ const Contacts = ({ navigation }) => {
       <FlatList
         data={contacts}
         contentContainerStyle={{ flex: 1 }}
+        keyExtractor={(item) => JSON.stringify(item)}
         renderItem={({ item }) =>
           item.email !== auth?.currentUser?.email && (
             <TouchableOpacity
               style={styles.container}
-              onPress={() => navigation.navigate("Chat", { user2: item.email })}
+              onPress={() =>
+                navigation.navigate("Chat", {
+                  user2: item.email,
+                  avatar: item.photoURL,
+                })
+              }
             >
               <View style={{ marginRight: 20 }}>
                 <Avatar rounded source={{ uri: item.photoURL }} />
